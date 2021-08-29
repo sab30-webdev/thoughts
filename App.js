@@ -8,59 +8,59 @@ import {
   TouchableOpacity,
   Platform,
   ScrollView,
-  Keyboard,
 } from "react-native";
 import Thought from "./components/Thought";
-import { db } from "./firebase";
-import firebase from "firebase/app";
+import { rdb } from "./firebase";
 import NetInfo from "@react-native-community/netinfo";
 
 export default function App() {
   const [data, setData] = useState("");
   const [items, setItems] = useState(undefined);
-  const [isOnline, setIsOnline] = useState(false);
-  const [refresh, setRefresh] = useState(false);
+  const [isOnline, setIsOnline] = useState(true);
 
   useEffect(() => {
     function fetchData() {
-      db.collection("thoughts")
-        .orderBy("createdAt", "desc")
-        .get()
-        .then((snapshot) => {
+      rdb
+        .ref("thoughts")
+        .orderByKey()
+        .on("value", (snapshot) => {
+          let obj = snapshot.val();
           let list = [];
-          snapshot.forEach((doc) => list.push({ ...doc.data(), id: doc.id }));
+          for (let key in obj) {
+            {
+              list.unshift({ id: key, ...obj[key] });
+            }
+          }
           setItems(list);
         });
     }
-    NetInfo.fetch().then((state) => {
-      const status = state.isConnected && state.isInternetReachable;
-      setIsOnline(status);
+    const unsubscribe = NetInfo.addEventListener((state) => {
+      setIsOnline(state.isConnected);
     });
-    fetchData();
-  }, [refresh]);
 
-  const handleAddThought = async () => {
+    fetchData();
+
+    return () => unsubscribe();
+  }, []);
+
+  const handleAddThought = () => {
     try {
-      Keyboard.dismiss();
-      if (data != "") {
-        await db.collection("thoughts").add({
+      if (data != "" && isOnline) {
+        rdb.ref("/thoughts").push({
           thought: data,
-          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
         });
-        setRefresh(!refresh);
         setData("");
       }
-    } catch (e) {
-      console.log(e);
+    } catch (error) {
+      console.error(error);
     }
   };
 
   const handleDeleteThought = async (id) => {
     try {
-      await db.collection("thoughts").doc(id).delete();
-      setRefresh(!refresh);
-    } catch (e) {
-      console.log(e);
+      await rdb.ref("thoughts").child(id).remove();
+    } catch (error) {
+      console.error(error);
     }
   };
 
@@ -105,15 +105,7 @@ export default function App() {
           )
         ) : (
           <View>
-            <Text style={styles.offlineText}>Please go online...</Text>
-            <TouchableOpacity
-              style={styles.buttonParent}
-              onPress={() => setRefresh(!refresh)}
-            >
-              <View style={styles.refreshButton}>
-                <Text style={styles.refreshButtonText}>Refresh</Text>
-              </View>
-            </TouchableOpacity>
+            <Text style={styles.offlineText}>No network connection</Text>
           </View>
         )}
       </ScrollView>
@@ -177,16 +169,5 @@ const styles = StyleSheet.create({
     textAlign: "center",
     fontSize: 20,
     marginBottom: 20,
-  },
-  refreshButton: {
-    backgroundColor: "aquamarine",
-    width: 100,
-    height: 30,
-    justifyContent: "center",
-    alignSelf: "center",
-    borderRadius: 20,
-  },
-  refreshButtonText: {
-    textAlign: "center",
   },
 });
