@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   Platform,
   ScrollView,
+  ImageBackground,
 } from "react-native";
 import Thought from "./components/Thought";
 import { rdb } from "./firebase";
@@ -20,19 +21,16 @@ export default function App() {
 
   useEffect(() => {
     function fetchData() {
-      rdb
-        .ref("thoughts")
-        .orderByKey()
-        .on("value", (snapshot) => {
-          let obj = snapshot.val();
-          let list = [];
-          for (let key in obj) {
-            {
-              list.unshift({ id: key, ...obj[key] });
-            }
+      rdb.ref("thoughts").on("value", (snapshot) => {
+        let obj = snapshot.val();
+        let list = [];
+        for (let key in obj) {
+          {
+            list.unshift({ id: key, ...obj[key] });
           }
-          setItems(list);
-        });
+        }
+        setItems(list);
+      });
     }
     const unsubscribe = NetInfo.addEventListener((state) => {
       setIsOnline(state.isConnected);
@@ -66,49 +64,55 @@ export default function App() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.sectionTitle}>thoughts</Text>
-      <Text style={styles.head}>Say something nice...</Text>
-      <ScrollView keyboardShouldPersistTaps="handled">
-        <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
-          style={styles.writeTaskWrapper}
-        >
-          <TextInput
-            style={styles.input}
-            placeholder={"What's on your mind ?"}
-            value={data}
-            onChangeText={(text) => setData(text)}
-          />
-          <TouchableOpacity onPress={() => handleAddThought()}>
-            <View style={styles.addWrapper}>
-              <Text style={styles.addText}>+</Text>
-            </View>
-          </TouchableOpacity>
-        </KeyboardAvoidingView>
-        {isOnline ? (
-          items ? (
-            <View style={styles.tasksWrapper}>
-              <View style={styles.items}>
-                {items.map((item) => (
-                  <TouchableOpacity
-                    key={item.id}
-                    onPress={() => handleDeleteThought(item.id)}
-                  >
-                    <Thought text={item.thought} />
-                  </TouchableOpacity>
-                ))}
+      <ImageBackground
+        source={require("./assets/bg.png")}
+        resizeMode="cover"
+        style={styles.image}
+      >
+        <Text style={styles.sectionTitle}>thoughts</Text>
+        <Text style={styles.head}>Say something nice...</Text>
+        <ScrollView keyboardShouldPersistTaps="handled">
+          <KeyboardAvoidingView
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
+            style={styles.writeTaskWrapper}
+          >
+            <TextInput
+              style={styles.input}
+              placeholder={"What's on your mind ?"}
+              value={data}
+              onChangeText={(text) => setData(text)}
+            />
+            <TouchableOpacity onPress={() => handleAddThought()}>
+              <View style={styles.addWrapper}>
+                <Text style={styles.addText}>+</Text>
               </View>
-              <View />
-            </View>
+            </TouchableOpacity>
+          </KeyboardAvoidingView>
+          {isOnline ? (
+            items ? (
+              <View style={styles.tasksWrapper}>
+                <View style={styles.items}>
+                  {items.map((item) => (
+                    <TouchableOpacity
+                      key={item.id}
+                      onPress={() => handleDeleteThought(item.id)}
+                    >
+                      <Thought text={item.thought} />
+                    </TouchableOpacity>
+                  ))}
+                </View>
+                <View />
+              </View>
+            ) : (
+              <Text style={styles.loadingText}>Loading...</Text>
+            )
           ) : (
-            <Text style={styles.loadingText}>Loading...</Text>
-          )
-        ) : (
-          <View>
-            <Text style={styles.offlineText}>No network connection</Text>
-          </View>
-        )}
-      </ScrollView>
+            <View>
+              <Text style={styles.offlineText}>No network connection</Text>
+            </View>
+          )}
+        </ScrollView>
+      </ImageBackground>
     </View>
   );
 }
@@ -117,6 +121,10 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#E8EAED",
+  },
+  image: {
+    flex: 1,
+    justifyContent: "center",
   },
   tasksWrapper: {
     marginTop: 20,
@@ -128,9 +136,9 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginBottom: 15,
     marginTop: 50,
-    color: "#55bcf6",
+    color: "white",
   },
-  head: { textAlign: "center", marginBottom: 20, color: "#a9a9a9" },
+  head: { textAlign: "center", marginBottom: 20, color: "white" },
   items: {
     marginTop: 30,
   },
@@ -163,11 +171,15 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginTop: 50,
     fontSize: 20,
+    color: "white",
   },
   offlineText: {
     marginTop: 50,
     textAlign: "center",
     fontSize: 20,
     marginBottom: 20,
+  },
+  addText: {
+    fontSize: 35,
   },
 });
